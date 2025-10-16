@@ -16,7 +16,7 @@ A Python library and CLI for parsing, validating, and managing GitHub CODEOWNERS
 ## Installation
 
 ```bash
-pip install github-codeowners==0.0.2
+pip install github-codeowners==0.0.3
 ```
 
 For development:
