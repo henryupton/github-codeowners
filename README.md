@@ -289,9 +289,44 @@ validate-codeowners:
     - merge_requests
 ```
 
-### Pre-commit Hook
+### Pre-commit Hooks
 
-Add to `.pre-commit-config.yaml`:
+This package provides pre-commit hooks for automatic validation and formatting. Add to your `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/henryupton/github-codeowners
+    rev: v0.1.0  # Use the latest release tag
+    hooks:
+      # Validate CODEOWNERS syntax on every commit
+      - id: validate-codeowners
+
+      # Optional: Auto-format CODEOWNERS file
+      # - id: format-codeowners
+
+      # Optional: Check CODEOWNERS is in correct location
+      # - id: check-codeowners-location
+```
+
+#### Available Hooks
+
+**validate-codeowners**
+- Validates CODEOWNERS file syntax and structure
+- Checks for rules without owners
+- Fails if validation errors are found
+
+**format-codeowners**
+- Automatically formats and normalizes CODEOWNERS files
+- Useful for maintaining consistent formatting across your team
+- Auto-fixes formatting issues
+
+**check-codeowners-location**
+- Ensures CODEOWNERS is in a valid location (`.github/`, `docs/`, or root)
+- Fails if CODEOWNERS is in an invalid directory
+
+#### Local Development Hook
+
+For local development without installing from the repo:
 
 ```yaml
 repos:
@@ -301,6 +336,7 @@ repos:
         name: Validate CODEOWNERS
         entry: codeowners validate
         language: system
+        files: (^|/)CODEOWNERS$
         pass_filenames: false
 ```
 
