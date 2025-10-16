@@ -6,7 +6,7 @@ from typing import Optional
 
 import click
 
-from .models import CodeOwner
+from .models import CodeOwner, CodeOwnersFileSizeError
 from .parser import parse_codeowners_file, find_codeowners_file
 from .writer import write_codeowners_file, write_codeowners
 
@@ -112,6 +112,9 @@ def format(file: Optional[str], repo: Optional[str], output: Optional[str]):
     except FileNotFoundError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
+    except CodeOwnersFileSizeError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
 
 
 @cli.command()
@@ -150,6 +153,9 @@ def add_rule(pattern: str, owners: tuple, file: Optional[str], repo: Optional[st
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
+    except CodeOwnersFileSizeError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
 
 
 @cli.command()
@@ -184,6 +190,9 @@ def remove_rule(pattern: str, file: Optional[str], repo: Optional[str], output: 
         click.echo(f"✓ Removed {len(matching_rules)} rule(s) matching: {pattern}")
 
     except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+    except CodeOwnersFileSizeError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
@@ -236,6 +245,9 @@ def add_owner(pattern: str, owner: str, file: Optional[str], repo: Optional[str]
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
+    except CodeOwnersFileSizeError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
 
 
 @cli.command()
@@ -281,6 +293,9 @@ def remove_owner(pattern: str, owner: str, file: Optional[str], repo: Optional[s
             sys.exit(1)
 
     except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+    except CodeOwnersFileSizeError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 

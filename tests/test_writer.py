@@ -7,11 +7,13 @@ from github_codeowners.writer import (
     write_codeowners,
     write_codeowners_file,
     format_entry,
+    MAX_FILE_SIZE_BYTES,
 )
 from github_codeowners.models import (
     CodeOwnersFile,
     CodeOwnersEntry,
     EntryType,
+    CodeOwnersFileSizeError,
 )
 from github_codeowners.parser import parse_codeowners
 
@@ -307,3 +309,124 @@ class TestRoundTrip:
 
         # Should have same rules
         assert len(codeowners.get_rules()) == len(reparsed.get_rules())
+
+
+class TestFileSizeValidation:
+    """Tests for CODEOWNERS file size validation."""
+
+    def test_write_within_size_limit(self):
+        """Test that files within the size limit write successfully."""
+        codeowners = CodeOwnersFile()
+        codeowners.add_rule("*.py", ["@python-team"])
+        
+        # Should not raise an exception
+        content = write_codeowners(codeowners)
+        assert len(content.encode('utf-8')) < MAX_FILE_SIZE_BYTES
+
+    def test_write_exceeds_size_limit(self):
+        """Test that files exceeding 3MB raise an error."""
+        codeowners = CodeOwnersFile()
+
+        # Create a very large CODEOWNERS file (over 3MB)
+        # Add many rules with long patterns and comments
+        large_pattern = "a" * 1500
+        large_comment = "b" * 1500
+
+        # Add enough rules to exceed 3MB
+        # Each rule is approximately 3000+ bytes, so we need ~1100 rules
+        for i in range(1200):
+            codeowners.add_rule(
+                f"{large_pattern}_{i}",
+                ["@team1", "@team2", "@team3"],
+                inline_comment=f"{large_comment}_{i}"
+            )
+
+        # Should raise CodeOwnersFileSizeError
+        with pytest.raises(CodeOwnersFileSizeError) as exc_info:
+            write_codeowners(codeowners)
+
+        assert "3 MB limit" in str(exc_info.value)
+
+    def test_write_file_exceeds_size_limit(self, tmp_path):
+        """Test that write_codeowners_file also validates size."""
+        codeowners = CodeOwnersFile()
+
+        # Create a large file
+        large_pattern = "x" * 1500
+        for i in range(1200):
+            codeowners.add_rule(
+                f"{large_pattern}_{i}",
+                ["@team1", "@team2"],
+                inline_comment="c" * 1500
+            )
+
+        output_file = tmp_path / "CODEOWNERS"
+
+        # Should raise CodeOwnersFileSizeError
+        with pytest.raises(CodeOwnersFileSizeError):
+            write_codeowners_file(codeowners, output_file)
+
+        # File should not be created
+        assert not output_file.exists()
+
+    def test_write_with_validation_disabled(self):
+        """Test that validation can be disabled."""
+        codeowners = CodeOwnersFile()
+
+        # Create a large file
+        large_pattern = "y" * 1500
+        for i in range(1200):
+            codeowners.add_rule(
+                f"{large_pattern}_{i}",
+                ["@team1", "@team2"],
+                inline_comment="d" * 1500
+            )
+
+        # Should not raise an exception when validate_size=False
+        content = write_codeowners(codeowners, validate_size=False)
+        assert len(content.encode('utf-8')) > MAX_FILE_SIZE_BYTES
+
+    def test_write_file_with_validation_disabled(self, tmp_path):
+        """Test that file validation can be disabled."""
+        codeowners = CodeOwnersFile()
+
+        # Create a large file
+        large_pattern = "z" * 1500
+        for i in range(1200):
+            codeowners.add_rule(
+                f"{large_pattern}_{i}",
+                ["@team1", "@team2"],
+                inline_comment="e" * 1500
+            )
+
+        output_file = tmp_path / "CODEOWNERS"
+
+        # Should not raise when validation is disabled
+        write_codeowners_file(codeowners, output_file, validate_size=False)
+        assert output_file.exists()
+
+        # Verify the file is large
+        size_bytes = output_file.stat().st_size
+        assert size_bytes > MAX_FILE_SIZE_BYTES
+
+    def test_size_error_message_includes_actual_size(self):
+        """Test that the error message includes the actual file size."""
+        codeowners = CodeOwnersFile()
+
+        # Create a file that exceeds 3MB
+        large_pattern = "p" * 1500
+        for i in range(1200):
+            codeowners.add_rule(
+                f"{large_pattern}_{i}",
+                ["@team1", "@team2"],
+                inline_comment="f" * 1500
+            )
+
+        with pytest.raises(CodeOwnersFileSizeError) as exc_info:
+            write_codeowners(codeowners)
+
+        error_message = str(exc_info.value)
+        # Error should mention the size in MB
+        assert "MB" in error_message
+        # Error should mention the 3 MB limit
+        assert "3 MB" in error_message

@@ -5,6 +5,11 @@ from typing import List, Optional, Union
 from enum import Enum
 
 
+class CodeOwnersFileSizeError(Exception):
+    """Raised when a CODEOWNERS file exceeds GitHub's 3MB size limit."""
+    pass
+
+
 class OwnerType(Enum):
     """Type of code owner."""
     USERNAME = "username"  # @username
